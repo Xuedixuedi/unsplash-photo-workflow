@@ -1,5 +1,4 @@
 from tests.support import photo
-
 from upw.adapters.unsplash import Collection
 from upw.core.applier import apply_plan, locations_equal
 from upw.core.describe import build_description

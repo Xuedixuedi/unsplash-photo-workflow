@@ -1,7 +1,6 @@
 from datetime import date
 
 from tests.support import photo, trip_one
-
 from upw.core.grouper import assign_collections
 from upw.core.rules import Rules, burst_roles, decide_visibility, load_rules, load_templates
 from upw.core.tagger import build_tags, normalize_tag

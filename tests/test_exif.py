@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
 from tests.support import write_jpeg
-
 from upw.adapters.exif import OriginalIndex, load_track, match_track
 
 
