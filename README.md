@@ -301,6 +301,8 @@ Place search calls Nominatim from the server, one request per second, with the U
 
 Branch protection on `master` should require a pull request and the status checks named `python`, `gitleaks`, and `web`. The API token used while building this repo could not set that rule (GitHub returned 403). Settings → Branches → Add rule for `master`. Leave approving reviews off if a green CI run should be enough to merge.
 
+Set the description and topics under Settings → General. The API token returned 403, so they are still unset. Description: "Review-first workflow that fills Unsplash locations, tags, descriptions, and trip collections, then waits for a human before it writes." Topics: `unsplash`, `photography`, `automation`, `python`, `nextjs`, `cli`, `github-actions`.
+
 ## Limitations
 
 - Many DSLR and mirrorless cameras do not record GPS. Unsplash does not return GPS, and it does not return the shutter time. Capture time comes from local originals.
