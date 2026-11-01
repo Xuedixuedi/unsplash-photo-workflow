@@ -9,6 +9,12 @@
 
 Built for and used on [my Unsplash portfolio](https://unsplash.com/@liuxuedi).
 
+If this project helps you, please give it a ⭐
+
+[![GitHub stars](https://img.shields.io/github/stars/Xuedixuedi/unsplash-photo-workflow?style=social)](https://github.com/Xuedixuedi/unsplash-photo-workflow/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/Xuedixuedi/unsplash-photo-workflow?style=social)](https://github.com/Xuedixuedi/unsplash-photo-workflow/forks)
+[![GitHub watchers](https://img.shields.io/github/watchers/Xuedixuedi/unsplash-photo-workflow?style=social)](https://github.com/Xuedixuedi/unsplash-photo-workflow/watchers)
+
 Many DSLR and mirrorless cameras do not record GPS, and the Unsplash API does not return it from EXIF. After each upload batch, this project fills a location, tags (up to 20), a description, one collection per trip, and a show-on-profile suggestion. Deterministic code does the work. An LLM is called only for the slots that code cannot fill, and nothing is written until a human approves the plan.
 
 [![Natural stone arch, Nusa Penida, Bali](https://images.unsplash.com/photo-1789295664110-75076052270a?fit=max&fm=jpg&q=80&w=2000)](https://unsplash.com/photos/natural-stone-arch-in-nusa-penida-nUhiZ0AVIAk)
@@ -312,3 +318,27 @@ Set the description and topics under Settings → General. The API token returne
 - The Actions cache and the laptop `state/` directory are separate. A reviewed CSV from one applies on the other after you copy it.
 - The web desk and `upw` do not share a database. Apply from one does not mark the other's processed ids. A second apply still skips fields that already match.
 - Nominatim is a public service. Keep the User-Agent honest and the cache on.
+
+## Follow the photographer
+
+[![Unsplash @liuxuedi](https://img.shields.io/badge/Unsplash-%40liuxuedi-111111?logo=unsplash&logoColor=white)](https://unsplash.com/@liuxuedi)
+[![GitHub Xuedixuedi](https://img.shields.io/badge/GitHub-Xuedixuedi-181717?logo=github&logoColor=white)](https://github.com/Xuedixuedi)
+
+## Community
+
+[![Issues welcome](https://img.shields.io/badge/issues-welcome-8d2f24)](https://github.com/Xuedixuedi/unsplash-photo-workflow/issues)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-8d2f24)](https://github.com/Xuedixuedi/unsplash-photo-workflow/pulls)
+[![Last commit](https://img.shields.io/github/last-commit/Xuedixuedi/unsplash-photo-workflow)](https://github.com/Xuedixuedi/unsplash-photo-workflow/commits/master)
+[![Open issues](https://img.shields.io/github/issues/Xuedixuedi/unsplash-photo-workflow)](https://github.com/Xuedixuedi/unsplash-photo-workflow/issues)
+
+[Report a bug](https://github.com/Xuedixuedi/unsplash-photo-workflow/issues/new?labels=bug&title=Bug%3A%20) · [Request a feature](https://github.com/Xuedixuedi/unsplash-photo-workflow/issues/new?labels=enhancement&title=Feature%3A%20)
+
+[![Visitors](https://hits.sh/github.com/Xuedixuedi/unsplash-photo-workflow.svg)](https://hits.sh/github.com/Xuedixuedi/unsplash-photo-workflow/)
+
+[![Contributors](https://contrib.rocks/image?repo=Xuedixuedi/unsplash-photo-workflow)](https://github.com/Xuedixuedi/unsplash-photo-workflow/graphs/contributors)
+
+## Star history
+
+[![Star history](https://api.star-history.com/svg?repos=Xuedixuedi/unsplash-photo-workflow&type=Date)](https://www.star-history.com/#Xuedixuedi/unsplash-photo-workflow&Date)
+
+[↑ Back to top](#unsplash-photo-workflow)
