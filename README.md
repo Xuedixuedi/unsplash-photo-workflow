@@ -11,9 +11,9 @@ Built for and used on [my Unsplash portfolio](https://unsplash.com/@liuxuedi).
 
 Many DSLR and mirrorless cameras do not record GPS, and the Unsplash API does not return it from EXIF. After each upload batch, this project fills a location, tags (up to 20), a description, one collection per trip, and a show-on-profile suggestion. Deterministic code does the work. An LLM is called only for the slots that code cannot fill, and nothing is written until a human approves the plan.
 
-[![Jiuzhaigou Valley, photographed by Xuedi](https://images.unsplash.com/photo-1793431077207-58d9d4066c4a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=NHwxMjA3fDA&ixlib=rb-4.1.0&q=80&w=2000)](https://unsplash.com/photos/2RxlZqY3nz8)
+[![Natural stone arch, Nusa Penida, Bali](https://images.unsplash.com/photo-1789295664110-75076052270a?fit=max&fm=jpg&q=80&w=2000)](https://unsplash.com/photos/natural-stone-arch-in-nusa-penida-nUhiZ0AVIAk)
 
-*Photo by [Xuedi](https://unsplash.com/@liuxuedi) on Unsplash · [Jiuzhaigou Valley](https://unsplash.com/photos/2RxlZqY3nz8)*
+*Photo by [Xuedi](https://unsplash.com/@liuxuedi) on Unsplash · [Natural stone arch, Nusa Penida, Bali](https://unsplash.com/photos/natural-stone-arch-in-nusa-penida-nUhiZ0AVIAk)*
 
 ## Features
 
@@ -30,8 +30,8 @@ Many DSLR and mirrorless cameras do not record GPS, and the Unsplash API does no
 
 | | | |
 | --- | --- | --- |
-| [![Angkor Wat](https://images.unsplash.com/photo-1783783932894-bf8029abe6ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=NHwxMjA3fDA&ixlib=rb-4.1.0&q=80&w=800)](https://unsplash.com/photos/n4U0H0HnRaU) | [![Mt. Omuro](https://images.unsplash.com/photo-1759642688754-e09e656499dd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=NHwxMjA3fDA&ixlib=rb-4.1.0&q=80&w=800)](https://unsplash.com/photos/xjdpqE0VGPA) | [![Bintan](https://images.unsplash.com/photo-1736064901830-be730c1f700b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=NHwxMjA3fDA&ixlib=rb-4.1.0&q=80&w=800)](https://unsplash.com/photos/w56UfqgR37Y) |
-| [Angkor Wat](https://unsplash.com/photos/n4U0H0HnRaU) | [Mt. Omuro](https://unsplash.com/photos/xjdpqE0VGPA) | [Bintan](https://unsplash.com/photos/w56UfqgR37Y) |
+| [![Jiuzhaigou, China](https://images.unsplash.com/photo-1793431076855-d9a94cbbd98d?w=600&h=450&fit=crop&q=80)](https://unsplash.com/photos/nDWk_RXVtO4) | [![Nusa Penida, Bali](https://images.unsplash.com/photo-1789295664062-8c021cd8705d?w=600&h=450&fit=crop&q=80)](https://unsplash.com/photos/turquoise-waves-crashing-against-rocky-cliff-Jn64I7LFr14) | [![Lake Ashi, Hakone, Japan](https://images.unsplash.com/photo-1759674347978-7635e3624a56?w=600&h=450&fit=crop&q=80)](https://unsplash.com/photos/a-large-ship-sails-on-a-dark-lake-near-mountains-hH_bEgCLtE4) |
+| [Jiuzhaigou, China](https://unsplash.com/photos/nDWk_RXVtO4) | [Nusa Penida, Bali](https://unsplash.com/photos/turquoise-waves-crashing-against-rocky-cliff-Jn64I7LFr14) | [Lake Ashi, Hakone, Japan](https://unsplash.com/photos/a-large-ship-sails-on-a-dark-lake-near-mountains-hH_bEgCLtE4) |
 
 Photos by [Xuedi](https://unsplash.com/@liuxuedi) on Unsplash. The image URLs are the public `images.unsplash.com` files already stored in `fixtures/photos.json`.
 
