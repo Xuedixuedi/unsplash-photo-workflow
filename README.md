@@ -168,14 +168,75 @@ Runners have no `state/` directory of their own. The workflow restores and saves
 
 Artifacts are uploaded as `upw-review-<run id>`: `state/review.csv`, `state/review.json`, and `state/logs/`. A skipped secret check does not upload anything. Download the CSV, edit it locally, put it in your local `state/`, and run `upw apply --yes` on your machine when a row needs a human change. Rows marked `no` are not written by `--yes`.
 
-The review UI is added in a follow-up pull request. Branch protection on `master`, when this token can set it, should require the CI checks before merge. If the API refuses, the settings are:
+## Web desk
 
-GitHub → Settings → Branches → Add rule for `master` → Require a pull request and require the status checks named `python` and `gitleaks`.
+`web/` is a Next.js app for the same review, aimed at Vercel. It is a TypeScript port of the deterministic plan and apply path, not a second Python runtime. Vercel Python functions do not share a Next.js `app/` router cleanly, and the desk does not need EXIF, GPX, or the LLM cache. The Python package remains the source of truth for `upw`, GitHub Actions, camera GPS, phone tracks, and the optional model. The web tests read `fixtures/photos.json`, `config/rules.yaml`, `config/tag_templates.yaml`, and `trips/example-jiuzhaigou.yaml`, and fail if the embedded copies drift.
+
+The desk asks for a password (`UPW_PASSWORD`) and stores an HMAC session cookie signed with `UPW_SESSION_SECRET`. Locally it stores plans in SQLite (`web/data/upw.sqlite`, or `UPW_SQLITE_PATH`). On Vercel set `DATABASE_URL` to a Neon Postgres connection string. Without that variable the app refuses to boot on Vercel, because the serverless disk is not a database. `SENTRY_DSN`, when set, sends exception events to that DSN. The Next config is not wrapped by a Sentry plugin, and a missing DSN does nothing.
+
+`UPW_USE_FIXTURES=1` reads the committed public metadata and never calls Unsplash. Leave it unset in production.
+
+```bash
+cd web
+npm ci
+npm test
+npm run build
+```
+
+Copy the keys into `web/.env.local` (Next does not read the repo-root `.env` into Middleware):
+
+```bash
+UPW_PASSWORD=choose-a-long-password
+UPW_SESSION_SECRET=choose-another-long-secret
+UNSPLASH_ACCESS_KEY=
+UNSPLASH_SECRET_KEY=
+UNSPLASH_USER_TOKEN=
+UNSPLASH_USERNAME=liuxuedi
+NOMINATIM_USER_AGENT=unsplash-photo-workflow/0.1 (https://github.com/Xuedixuedi/unsplash-photo-workflow)
+# DATABASE_URL=postgres://...
+# SENTRY_DSN=https://...
+# UPW_USE_FIXTURES=1
+```
+
+Then `npm run dev` and open http://localhost:3000. Sign in, fill the trip (or use the Jiuzhaigou example), press **Start analysis**, edit the amber fields, and press **Apply**. Apply writes one selected photo at a time and lists failures without stopping the rest. Fixture mode shows that Unsplash was not called.
+
+### Deploy on Vercel
+
+This repository is not deployed from here. You create the project.
+
+1. In the Vercel dashboard, import `Xuedixuedi/unsplash-photo-workflow`.
+2. Set the root directory to `web`. Framework preset: Next.js. Node.js version: 22.
+3. Create a Neon database (Vercel Marketplace or [neon.tech](https://neon.tech)) and copy its pooled connection string.
+4. Set the environment variables for Production (and Preview, if you want the preview to work):
+
+| Name | Required | Value |
+| --- | --- | --- |
+| `UPW_PASSWORD` | yes | A password only you know |
+| `UPW_SESSION_SECRET` | yes | A long random string. Changing it signs everyone out. |
+| `DATABASE_URL` | yes | Neon Postgres connection string |
+| `UNSPLASH_ACCESS_KEY` | yes | Same access key as the Unsplash app |
+| `UNSPLASH_SECRET_KEY` | yes | Same secret key |
+| `UNSPLASH_USER_TOKEN` | yes | The token from `upw auth` |
+| `UNSPLASH_USERNAME` | no | `liuxuedi` if unset |
+| `NOMINATIM_USER_AGENT` | yes | Identify this app, including a way to contact you |
+| `SENTRY_DSN` | no | Leave empty to disable error reporting |
+| `LLM_API_KEY` | no | Unused by the desk. The CLI and Actions use it. |
+
+5. Do not set `UPW_USE_FIXTURES` on Vercel.
+6. Deploy. The first screen is the password form. Analysis reads your public photos, builds the plan, and stores it in Neon. Apply calls `PUT /photos/:id` and the collection endpoints with your user token.
+
+Place search calls Nominatim from the server, one request per second, with the User-Agent above. A day with two places stays empty until you fill it. The desk cannot see camera GPS or shutter time, so it does not hide burst frames. Use the profile checkbox yourself, or run `upw` locally when the originals are on disk. Photos with more than 100 downloads are still kept on the profile.
+
+Branch protection on `master`, when this token can set it, should require the CI checks before merge. If the API refuses, the settings are:
+
+GitHub → Settings → Branches → Add rule for `master` → Require a pull request and require the status checks named `python`, `gitleaks`, and `web`. Do not require approving reviews if you want a green CI run to be able to merge.
 
 ## Limitations
 
 - Unsplash does not return GPS, and it does not return the shutter time. Capture time comes from your local originals.
 - The public API lists public photos only. There is no upload and no delete.
 - Demo apps share a 50 request hourly budget. `upw run` on a large library can spend that on sync alone. Apply compares against the last sync snapshot and updates the snapshot after a successful write.
-- Hiding "weaker" shots without an aesthetic model means burst extras, plus any ids you list in `force_hide_ids`. Downloads above 100 are never hidden.
+- Hiding "weaker" shots without an aesthetic model means burst extras, plus any ids you list in `force_hide_ids`. Downloads above 100 are never hidden. The web desk cannot see shutter times, so burst hiding stays on the CLI.
+- The Actions cache and the laptop `state/` directory are separate. A reviewed CSV from one does not apply on the other until you copy it.
+- The web desk and `upw` do not share a database. Apply from one does not mark the other's processed ids. A second apply is still safe: unchanged fields are skipped.
 - Nominatim is a public service. Keep the User-Agent honest and the cache on.
