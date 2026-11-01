@@ -1,0 +1,37 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Local pipeline state (tokens are never stored here, but caches and logs are)
+state/
+originals/
+phone/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+.venv/
+venv/
+
+# Node / Next.js
+web/node_modules/
+web/.next/
+web/out/
+web/data/
+web/coverage/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

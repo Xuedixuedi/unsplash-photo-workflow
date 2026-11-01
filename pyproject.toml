@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unsplash-photo-workflow"
+version = "0.1.0"
+description = "Review-first pipeline for Unsplash locations, tags, descriptions, and trip collections."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Xuedi" }]
+dependencies = [
+  "httpx>=0.27",
+  "python-dotenv>=1.0",
+  "PyYAML>=6",
+  "typer>=0.12",
+  "Pillow>=10",
+  "exifread>=3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-cov>=5",
+  "respx>=0.21",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "types-PyYAML",
+  "piexif>=1.1",
+]
+
+[project.scripts]
+upw = "upw.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+packages = ["upw"]
+disallow_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+check_untyped_defs = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = ["exifread", "piexif", "PIL", "PIL.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-q"]
+
+[tool.coverage.run]
+branch = true
+source = ["upw"]
+omit = ["tests/*"]

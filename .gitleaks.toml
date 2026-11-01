@@ -1,0 +1,8 @@
+title = "unsplash-photo-workflow"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Example env file contains empty placeholders only."
+paths = ['''(^|/)\.env\.example$''']
