@@ -1,0 +1,21 @@
+# Scene templates. A trip names one of these in its `template` field.
+templates:
+  mountain-autumn:
+    - autumn foliage
+    - alpine lakes
+    - fall colors
+    - mountain landscape
+    - colorful forest
+  island-beach:
+    - tropical beach
+    - turquoise water
+    - ocean view
+    - island
+  city-street:
+    - street photography
+    - cityscape
+    - urban
+  temple:
+    - ancient temple
+    - heritage site
+    - stone carving

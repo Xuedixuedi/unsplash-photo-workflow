@@ -1,0 +1,30 @@
+# Visibility, tag limits, and clock matching. Distances are not guessed here.
+target_tag_count: 20
+# Photos with more downloads than this are never proposed as hidden.
+never_hide_above_downloads: 100
+burst_seconds: 4
+hide_burst_extras: true
+min_auto_approve_confidence: 0.75
+timezone: Asia/Shanghai
+# Add this many seconds to the camera clock before matching a phone track.
+camera_clock_offset_seconds: 0
+phone_match_max_seconds: 180
+neighbour_max_seconds: 900
+cluster_gap_days: 2
+max_new_tag_words: 3
+# Owner tags already on the photo may be a little longer ("unesco world heritage site").
+max_existing_tag_words: 5
+description_from_location: true
+force_hide_ids: []
+force_show_ids: []
+camera_brands:
+  - canon
+  - nikon
+  - sony
+  - fuji
+  - fujifilm
+  - eos
+  - dslr
+  - iphone
+  - adobe
+  - lightroom

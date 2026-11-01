@@ -3,10 +3,10 @@
 .env.*
 !.env.example
 
-# Local pipeline state (tokens are never stored here, but caches and logs are)
-state/
-originals/
-phone/
+# Local pipeline state at the repo root (do not ignore the Python package).
+/state/
+/originals/
+/phone/
 
 # Python
 __pycache__/
