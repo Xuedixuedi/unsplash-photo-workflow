@@ -128,9 +128,47 @@ CI on every pull request and on `master` runs those checks plus gitleaks. This r
 
 `fixtures/photos.json` and `fixtures/tags_current.json` are trimmed from the owner's public photo metadata and current tags. They are safe to commit.
 
-## Later stages
+## GitHub Actions
 
-A GitHub Actions workflow (manual, plus an optional daily schedule) and a Next.js review UI are added in follow-up pull requests. Branch protection on `master`, when this token can set it, should require the CI checks before merge. If the API refuses, the settings are:
+`.github/workflows/unsplash-run.yml` (workflow name **Unsplash run**) plans photos on a runner. It does not replace a local review when you want to edit a row.
+
+Secrets go under Settings → Secrets and variables → Actions → Secrets. The job never prints their values. If any of the first three is empty, the job exits 0 and writes this to the log and the step summary:
+
+```text
+Unsplash run skipped: missing <names>. Add UNSPLASH_ACCESS_KEY, UNSPLASH_SECRET_KEY, and UNSPLASH_USER_TOKEN under Settings → Secrets and variables → Actions.
+```
+
+| Secret | Required | Role |
+| --- | --- | --- |
+| `UNSPLASH_ACCESS_KEY` | yes | Application access key |
+| `UNSPLASH_SECRET_KEY` | yes | Application secret. The run itself calls the API with the user token. |
+| `UNSPLASH_USER_TOKEN` | yes | User token from `upw auth` on your machine. Paste the value; do not commit it. |
+| `LLM_API_KEY` | no | When this is empty the run adds `--no-ai` and says so. |
+
+Optional variables (same settings page, Variables tab):
+
+| Variable | Role |
+| --- | --- |
+| `ENABLE_UNSPLASH_SCHEDULE` | Set to exactly `true` to let the daily job do work. Any other value, including unset, skips it. |
+| `UNSPLASH_USERNAME` | Defaults to `liuxuedi` when unset. |
+| `LLM_BASE_URL` | Defaults to `https://api.openai.com/v1`. |
+| `LLM_MODEL` | Defaults to `gpt-4o-mini`. |
+
+Manual run: Actions → Unsplash run → Run workflow.
+
+| Input | Default | Effect |
+| --- | --- | --- |
+| Apply writes | off | On passes `--yes`. That writes every row the planner already marked `yes` in the same run. There is no pause to edit the CSV on the runner. |
+| Skip AI | on | Passes `--no-ai`. An empty `LLM_API_KEY` forces `--no-ai` even if you turn this off. |
+| Plan already processed photos | off | Passes `--all`. |
+
+The daily cron is `0 16 * * *` (16:00 UTC, 00:00 Asia/Shanghai). The job starts, and unless `ENABLE_UNSPLASH_SCHEDULE` is `true` it exits 0 with: `Unsplash daily run skipped: set the repository variable ENABLE_UNSPLASH_SCHEDULE to true ... The schedule never applies changes.` When the variable is `true`, the job syncs. If `upw status --format json` reports `new` of 0, it exits 0 with `Unsplash daily run skipped: sync found no new photos. Nothing was suggested or applied.` Otherwise it runs `upw suggest` and still does not pass `--yes`.
+
+Runners have no `state/` directory of their own. The workflow restores and saves `state/` with `actions/cache` (`upw-state-<run id>`, restoring the newest `upw-state-` cache). `.env` is written with mode `0600` for that job only. It is not cached and not uploaded. The first run after an empty cache plans the whole library, because nothing is processed yet. GitHub can evict a cache that has not been used for a while; the next run plans again. A later `--yes` still skips fields that already match the live photo.
+
+Artifacts are uploaded as `upw-review-<run id>`: `state/review.csv`, `state/review.json`, and `state/logs/`. A skipped secret check does not upload anything. Download the CSV, edit it locally, put it in your local `state/`, and run `upw apply --yes` on your machine when a row needs a human change. Rows marked `no` are not written by `--yes`.
+
+The review UI is added in a follow-up pull request. Branch protection on `master`, when this token can set it, should require the CI checks before merge. If the API refuses, the settings are:
 
 GitHub → Settings → Branches → Add rule for `master` → Require a pull request and require the status checks named `python` and `gitleaks`.
 

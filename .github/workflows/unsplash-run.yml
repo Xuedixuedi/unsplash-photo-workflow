@@ -1,0 +1,223 @@
+# Manual Unsplash planning run, plus a daily schedule that does nothing
+# until the repository variable ENABLE_UNSPLASH_SCHEDULE is exactly "true".
+# The schedule never passes --yes. Runners are fresh, so state/ is restored
+# from the Actions cache; without that, every photo looks new.
+
+name: Unsplash run
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Write rows already marked yes (upw run --yes). The daily schedule never writes."
+        type: boolean
+        default: false
+      no_ai:
+        description: "Skip the LLM even when LLM_API_KEY is set."
+        type: boolean
+        default: true
+      all_photos:
+        description: "Plan photos that were already processed (--all)."
+        type: boolean
+        default: false
+  schedule:
+    # 16:00 UTC, which is 00:00 in Asia/Shanghai. Disabled unless ENABLE_UNSPLASH_SCHEDULE=true.
+    - cron: "0 16 * * *"
+
+permissions:
+  contents: read
+  # Cache restore/save and artifact upload. This token cannot push or change secrets.
+  actions: write
+
+concurrency:
+  group: unsplash-run
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: unsplash-run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Skip unless the daily schedule is enabled
+        id: schedule
+        if: github.event_name == 'schedule'
+        env:
+          ENABLE_UNSPLASH_SCHEDULE: ${{ vars.ENABLE_UNSPLASH_SCHEDULE }}
+        run: |
+          set -euo pipefail
+          if [ "${ENABLE_UNSPLASH_SCHEDULE}" != "true" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            msg="Unsplash daily run skipped: set the repository variable ENABLE_UNSPLASH_SCHEDULE to true under Settings → Secrets and variables → Actions → Variables. The schedule never applies changes."
+            echo "$msg"
+            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          msg="Daily Unsplash run is enabled. It will sync and plan new photos. It will not apply writes."
+          echo "$msg"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Require Unsplash secrets
+        id: gate
+        if: steps.schedule.outputs.skip != 'true'
+        env:
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
+          UNSPLASH_USER_TOKEN: ${{ secrets.UNSPLASH_USER_TOKEN }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -z "${UNSPLASH_ACCESS_KEY}" ] && missing+=("UNSPLASH_ACCESS_KEY")
+          [ -z "${UNSPLASH_SECRET_KEY}" ] && missing+=("UNSPLASH_SECRET_KEY")
+          [ -z "${UNSPLASH_USER_TOKEN}" ] && missing+=("UNSPLASH_USER_TOKEN")
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            list=$(IFS=', '; echo "${missing[*]}")
+            msg="Unsplash run skipped: missing ${list}. Add UNSPLASH_ACCESS_KEY, UNSPLASH_SECRET_KEY, and UNSPLASH_USER_TOKEN under Settings → Secrets and variables → Actions."
+            echo "$msg"
+            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          if [ -z "${LLM_API_KEY}" ]; then
+            echo "llm=false" >> "$GITHUB_OUTPUT"
+            msg="LLM_API_KEY is not set. The run will use --no-ai."
+            echo "$msg"
+            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "llm=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.skip == 'false'
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        if: steps.gate.outputs.skip == 'false'
+        run: python -m pip install -e .
+
+      - name: Restore local state
+        if: steps.gate.outputs.skip == 'false'
+        uses: actions/cache@v4
+        with:
+          path: state
+          key: upw-state-${{ github.run_id }}
+          restore-keys: |
+            upw-state-
+
+      - name: Write .env
+        if: steps.gate.outputs.skip == 'false'
+        env:
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
+          UNSPLASH_USER_TOKEN: ${{ secrets.UNSPLASH_USER_TOKEN }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          UNSPLASH_USERNAME: ${{ vars.UNSPLASH_USERNAME }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          def value(name: str, default: str = "") -> str:
+              raw = os.environ.get(name, "")
+              return raw if raw else default
+
+          lines = [
+              f"UNSPLASH_ACCESS_KEY={value('UNSPLASH_ACCESS_KEY')}",
+              f"UNSPLASH_SECRET_KEY={value('UNSPLASH_SECRET_KEY')}",
+              f"UNSPLASH_USER_TOKEN={value('UNSPLASH_USER_TOKEN')}",
+              f"UNSPLASH_USERNAME={value('UNSPLASH_USERNAME', 'liuxuedi')}",
+              f"LLM_API_KEY={value('LLM_API_KEY')}",
+              f"LLM_BASE_URL={value('LLM_BASE_URL', 'https://api.openai.com/v1')}",
+              f"LLM_MODEL={value('LLM_MODEL', 'gpt-4o-mini')}",
+              "NOMINATIM_USER_AGENT=unsplash-photo-workflow/0.1 (https://github.com/Xuedixuedi/unsplash-photo-workflow)",
+              "UPW_OPEN_REVIEW=0",
+          ]
+          path = Path(".env")
+          path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          path.chmod(0o600)
+          PY
+
+      - name: Sync and stop when nothing is new
+        id: fresh
+        if: github.event_name == 'schedule' && steps.gate.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          upw sync
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          raw = subprocess.check_output(["upw", "status", "--format", "json"], text=True)
+          new = int(json.loads(raw)["new"])
+          print(f"New photos: {new}")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"new={new}\n")
+              handle.write("skip=true\n" if new == 0 else "skip=false\n")
+          if new == 0:
+              msg = "Unsplash daily run skipped: sync found no new photos. Nothing was suggested or applied."
+              print(msg)
+              summary = os.environ.get("GITHUB_STEP_SUMMARY", "")
+              if summary:
+                  with open(summary, "a", encoding="utf-8") as handle:
+                      handle.write(msg + "\n")
+          PY
+
+      - name: Plan photos
+        if: steps.gate.outputs.skip == 'false' && steps.fresh.outputs.skip != 'true'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_APPLY: ${{ inputs.apply }}
+          INPUT_NO_AI: ${{ inputs.no_ai }}
+          INPUT_ALL: ${{ inputs.all_photos }}
+          LLM_ENABLED: ${{ steps.gate.outputs.llm }}
+          UPW_OPEN_REVIEW: "0"
+        run: |
+          set -euo pipefail
+          args=(upw)
+          if [ "$EVENT_NAME" = "schedule" ]; then
+            # Already synced. suggest reads the snapshot and never writes to Unsplash.
+            args+=(suggest)
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            args+=(run)
+            if [ "$INPUT_ALL" = "true" ]; then
+              args+=(--all)
+            fi
+            if [ "$INPUT_APPLY" = "true" ]; then
+              args+=(--yes)
+            fi
+          else
+            echo "Unexpected event: $EVENT_NAME"
+            exit 1
+          fi
+          if [ "$EVENT_NAME" = "schedule" ]; then
+            if [ "$LLM_ENABLED" != "true" ]; then
+              args+=(--no-ai)
+            fi
+          elif [ "$INPUT_NO_AI" != "false" ] || [ "$LLM_ENABLED" != "true" ]; then
+            args+=(--no-ai)
+          fi
+          printf 'Running'
+          printf ' %q' "${args[@]}"
+          printf '\n'
+          "${args[@]}"
+
+      - name: Upload review and logs
+        if: always() && steps.gate.outputs.skip == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: upw-review-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            state/review.csv
+            state/review.json
+            state/logs/
