@@ -42,9 +42,9 @@ test("embedded rules and templates match the Python config", () => {
 
 test("tags keep owner phrases, drop brands and hashtags, and stop at 20", () => {
   assert.equal(normalizeTag("UNESCO World Heritage Site", DEFAULT_RULES.cameraBrands, 5), "unesco world heritage site");
-  assert.equal(normalizeTag("Canon EOS", DEFAULT_RULES.cameraBrands, 3), null);
+  assert.equal(normalizeTag("Nikon body", DEFAULT_RULES.cameraBrands, 3), null);
   assert.equal(normalizeTag("#autumn", DEFAULT_RULES.cameraBrands, 3), null);
-  const photo = blankPhoto({ tags: ["Travel Photography", "unesco world heritage site", "canon"] });
+  const photo = blankPhoto({ tags: ["Travel Photography", "unesco world heritage site", "nikon"] });
   const tags = buildTags(
     photo,
     { name: "Five Flower Lake", city: "Jiuzhaigou County", region: "Ngawa", country: "China", latitude: 1, longitude: 2 },
@@ -55,7 +55,7 @@ test("tags keep owner phrases, drop brands and hashtags, and stop at 20", () => 
   );
   assert.ok(tags.value.includes("travel photography"));
   assert.ok(tags.value.includes("unesco world heritage site"));
-  assert.equal(tags.value.includes("canon"), false);
+  assert.equal(tags.value.includes("nikon"), false);
   assert.ok(tags.value.length <= 20);
   assert.equal(new Set(tags.value.map((tag) => tag.toLowerCase())).size, tags.value.length);
 });

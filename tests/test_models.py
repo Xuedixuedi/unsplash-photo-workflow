@@ -26,7 +26,7 @@ def test_photo_from_api_and_fixture_file() -> None:
         "views": 9,
         "tags": [{"title": "Lake"}, "mist"],
         "location": {"name": "Five Flower Lake, Jiuzhaigou County, China", "position": {"latitude": 1.5, "longitude": 2.5}},
-        "exif": {"name": "Canon, EOS 77D"},
+        "exif": {"name": "Example body"},
         "urls": {"small": "https://images.unsplash.com/example"},
         "current_user_collections": [{"id": 7, "title": "Autumn"}],
         "show_on_profile": False,
@@ -39,7 +39,7 @@ def test_photo_from_api_and_fixture_file() -> None:
     assert photo.show_on_profile is False
     assert photo.show_on_profile_known is True
     assert photo.collections[0].title == "Autumn"
-    assert photo.camera == "Canon, EOS 77D"
+    assert photo.camera == "Example body"
     again = photo_from_api(photo.to_dict())
     assert again.id == "abc"
 

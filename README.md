@@ -1,8 +1,41 @@
 # unsplash-photo-workflow
 
-Review-first pipeline for [Xuedi's Unsplash](https://unsplash.com/@liuxuedi) photos.
+[![CI](https://img.shields.io/github/actions/workflow/status/Xuedixuedi/unsplash-photo-workflow/ci.yml?branch=master&label=CI)](https://github.com/Xuedixuedi/unsplash-photo-workflow/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Ruff](https://img.shields.io/badge/lint-ruff-D7FF64?logo=ruff&logoColor=111111)](https://docs.astral.sh/ruff/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs)](web/)
+[![Vercel](https://img.shields.io/badge/deploy-Vercel-black?logo=vercel)](#deploy-on-vercel)
 
-The camera is a Canon EOS 77D, which does not write GPS, and the Unsplash API does not return GPS from EXIF. After each upload batch, `upw` fills location, tags (up to 20), a description, a trip collection, and a show-on-profile suggestion. Deterministic code does the work. An LLM is called only for the slots that code cannot fill, and nothing is written until a human approves the plan.
+Built for and used on [my Unsplash portfolio](https://unsplash.com/@liuxuedi).
+
+Many DSLR and mirrorless cameras do not record GPS, and the Unsplash API does not return it from EXIF. After each upload batch, this project fills a location, tags (up to 20), a description, one collection per trip, and a show-on-profile suggestion. Deterministic code does the work. An LLM is called only for the slots that code cannot fill, and nothing is written until a human approves the plan.
+
+[![Jiuzhaigou Valley, photographed by Xuedi](https://images.unsplash.com/photo-1793431077207-58d9d4066c4a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=NHwxMjA3fDA&ixlib=rb-4.1.0&q=80&w=2000)](https://unsplash.com/photos/2RxlZqY3nz8)
+
+*Photo by [Xuedi](https://unsplash.com/@liuxuedi) on Unsplash · [Jiuzhaigou Valley](https://unsplash.com/photos/2RxlZqY3nz8)*
+
+## Features
+
+- 📍 A location chain that stops at the first real hit: file GPS, a phone track, the trip itinerary, a neighbour, then an optional model
+- 🏷️ Tags filled toward 20, keeping the ones already on the photo and refusing brands and hashtags
+- 📝 A description kept when one exists, otherwise a sentence built from the place
+- 🗂️ One collection per trip, created on apply when the title is missing
+- 👁️ Profile visibility that never hides a photo with more than 100 downloads
+- ✋ A review file, or a web grid, before any write
+- 🤖 `--no-ai` turns the model off for the whole run
+- 🔁 Apply is a dry run until `--yes`, and a second apply skips fields that already match
+
+## From the portfolio
+
+| | | |
+| --- | --- | --- |
+| [![Angkor Wat](https://images.unsplash.com/photo-1783783932894-bf8029abe6ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=NHwxMjA3fDA&ixlib=rb-4.1.0&q=80&w=800)](https://unsplash.com/photos/n4U0H0HnRaU) | [![Mt. Omuro](https://images.unsplash.com/photo-1759642688754-e09e656499dd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=NHwxMjA3fDA&ixlib=rb-4.1.0&q=80&w=800)](https://unsplash.com/photos/xjdpqE0VGPA) | [![Bintan](https://images.unsplash.com/photo-1736064901830-be730c1f700b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=NHwxMjA3fDA&ixlib=rb-4.1.0&q=80&w=800)](https://unsplash.com/photos/w56UfqgR37Y) |
+| [Angkor Wat](https://unsplash.com/photos/n4U0H0HnRaU) | [Mt. Omuro](https://unsplash.com/photos/xjdpqE0VGPA) | [Bintan](https://unsplash.com/photos/w56UfqgR37Y) |
+
+Photos by [Xuedi](https://unsplash.com/@liuxuedi) on Unsplash. The image URLs are the public `images.unsplash.com` files already stored in `fixtures/photos.json`.
+
+## Quickstart
 
 ```bash
 python -m pip install -e ".[dev]"
@@ -13,13 +46,51 @@ upw run          # sync, suggest, print the review, stop
 upw apply --yes  # write the rows whose approve column is yes
 ```
 
-## What a run does
+The desk is the same plan in a browser. From `web/`, copy the keys into `.env.local`, then:
 
-1. **sync** downloads your public photos and remembers which ids are not processed yet.
-2. **suggest** builds `state/review.csv` and `state/review.json`.
-3. **review** prints the plan. On a local terminal it also opens the CSV.
-4. **apply** writes only rows marked `yes`. The default is a dry run. `--yes` performs the writes. The write is idempotent: a second apply skips fields that already match.
-5. **run** does sync, suggest, and review, and stops before apply unless you pass `--yes`.
+```bash
+cd web
+npm ci
+npm run dev
+```
+
+Open http://localhost:3000, sign in, fill the trip (or use the Jiuzhaigou example), press **Start analysis**, edit the amber fields, and press **Apply**.
+
+## How it works
+
+```mermaid
+flowchart LR
+  photos["Unsplash photos"]
+  trips["trips/*.yaml"]
+  files["Originals and phone tracks"]
+  cli["upw CLI"]
+  desk["Next.js desk"]
+  plan["Deterministic plan"]
+  review["Human review"]
+  write["Apply"]
+
+  photos --> cli
+  photos --> desk
+  trips --> cli
+  trips --> desk
+  files --> cli
+  cli --> plan
+  desk --> plan
+  plan --> review
+  review --> write
+  write --> photos
+```
+
+1. **Sync** downloads the public library and remembers which ids are not processed yet.
+2. **Suggest** builds a plan: location, tags, description, collection, and show-on-profile, each with a confidence and a flag.
+3. **Review** is `state/review.csv` on the command line, or the photo grid in the desk. Amber, and the `no` rows, are the fields to check.
+4. **Apply** writes only what was approved. The default is a dry run.
+
+![upw --help](docs/images/cli.png)
+
+![Review grid in the desk](docs/images/desk.png)
+
+![From the trip sheet to the review grid](docs/images/flow.gif)
 
 `approve` values:
 
@@ -36,7 +107,7 @@ Rows the pipeline is confident about start as `yes`. A neighbour guess, an LLM s
 The first hit wins:
 
 1. GPS in the local original file (`originals/{photo_id}.jpg`, or a row in `originals/manifest.csv`).
-2. A phone photo, GPX track, or Google Timeline JSON (`UPW_PHONE_SOURCE`), matched by time. `camera_clock_offset_seconds` in `config/rules.yaml` is added to the camera clock first. The camera timestamp is read as `timezone` (default `Asia/Shanghai`).
+2. A phone photo, GPX track, or Google Timeline JSON (`UPW_PHONE_SOURCE`), matched by time. `camera_clock_offset_seconds` in `config/rules.yaml` is added to the camera clock first. The timestamp is read as `timezone` (default `Asia/Shanghai`).
 3. The trip itinerary, when that calendar day lists exactly one place.
 4. A neighbouring photo in the same batch, within `neighbour_max_seconds`, when both have a real clock time.
 5. The optional LLM, which may choose only among the itinerary places for that day.
@@ -46,7 +117,7 @@ A location already stored on the photo is kept when local GPS does not contradic
 
 ## Tags, description, collections, visibility
 
-Tags keep the ones already on the photo (lowercased, case-insensitive dedupe). Then the pipeline adds the place, city, region, and country, the trip's tags, and the tags from the trip's template in `config/tag_templates.yaml`. New tags are lowercase, 1–3 words, and never a camera brand or a hashtag. Existing owner tags may be up to 5 words so phrases such as "unesco world heritage site" survive. Only the slots left under 20 are offered to the LLM, and only when a small image of the original is available.
+Tags keep the ones already on the photo (lowercased, case-insensitive dedupe). Then the pipeline adds the place, city, region, and country, the trip's tags, and the tags from the trip's template in `config/tag_templates.yaml`. New tags are lowercase, 1–3 words, and never a camera brand or a hashtag. Existing tags may be up to 5 words so phrases such as "unesco world heritage site" survive. Only the slots left under 20 are offered to the LLM, and only when a small image of the original is available.
 
 The description is kept when one already exists. Otherwise it is a sentence built from the place. The LLM writes one only when that template has nothing to say.
 
@@ -63,6 +134,7 @@ config/             rules.yaml and tag_templates.yaml
 trips/*.yaml        one itinerary per trip
 fixtures/           trimmed public metadata for tests
 state/              gitignored caches, processed ids, logs, review files
+web/                Next.js review desk
 ```
 
 `trips/example-jiuzhaigou.yaml` is a real-shaped example: trip name, collection name, a day, and two places. Copy it and edit the dates. A day with one place is filled in directly. Several places are left blank unless a neighbour or the LLM can choose.
@@ -109,7 +181,7 @@ originals/2RxlZqY3nz8.jpg
 originals/manifest.csv          # photo_id,file
 UPW_PHONE_SOURCE=phone/track.gpx
 UPW_PHONE_SOURCE=phone/timeline.json
-UPW_PHONE_SOURCE=phone/iphone-exports/
+UPW_PHONE_SOURCE=phone/exports/
 ```
 
 Google Timeline JSON accepts `locations[].latitudeE7` / `longitudeE7` with `timestamp` or `timestampMs`, or a list of `{time, lat, lon}`.
@@ -124,9 +196,9 @@ mypy src
 pytest --cov=upw --cov-report=term-missing --cov-fail-under=80
 ```
 
-CI on every pull request and on `master` runs those checks plus gitleaks. This repository is public. Do not commit tokens, `.env`, or `state/`.
+CI on every pull request and on `master` runs those checks, the web lint, typecheck, test, and build, plus gitleaks. This repository is public. Do not commit tokens, `.env`, or `state/`.
 
-`fixtures/photos.json` and `fixtures/tags_current.json` are trimmed from the owner's public photo metadata and current tags. They are safe to commit.
+`fixtures/photos.json` and `fixtures/tags_current.json` are trimmed from public photo metadata and current tags. They are safe to commit. Camera make and model are omitted from the fixture text.
 
 ## GitHub Actions
 
@@ -170,7 +242,7 @@ Artifacts are uploaded as `upw-review-<run id>`: `state/review.csv`, `state/revi
 
 ## Web desk
 
-`web/` is a Next.js app for the same review, aimed at Vercel. It is a TypeScript port of the deterministic plan and apply path, not a second Python runtime. Vercel Python functions do not share a Next.js `app/` router cleanly, and the desk does not need EXIF, GPX, or the LLM cache. The Python package remains the source of truth for `upw`, GitHub Actions, camera GPS, phone tracks, and the optional model. The web tests read `fixtures/photos.json`, `config/rules.yaml`, `config/tag_templates.yaml`, and `trips/example-jiuzhaigou.yaml`, and fail if the embedded copies drift.
+`web/` is a Next.js app for the same review, aimed at Vercel. It is a TypeScript port of the deterministic plan and apply path, so the site is one Next.js project. The Python package remains the source of truth for `upw`, GitHub Actions, file GPS, phone tracks, and the optional model. The web tests read `fixtures/photos.json`, `config/rules.yaml`, `config/tag_templates.yaml`, and `trips/example-jiuzhaigou.yaml`, and fail if the embedded copies drift.
 
 The desk asks for a password (`UPW_PASSWORD`) and stores an HMAC session cookie signed with `UPW_SESSION_SECRET`. Locally it stores plans in SQLite (`web/data/upw.sqlite`, or `UPW_SQLITE_PATH`). On Vercel set `DATABASE_URL` to a Neon Postgres connection string. Without that variable the app refuses to boot on Vercel, because the serverless disk is not a database. `SENTRY_DSN`, when set, sends exception events to that DSN. The Next config is not wrapped by a Sentry plugin, and a missing DSN does nothing.
 
@@ -225,18 +297,16 @@ This repository is not deployed from here. You create the project.
 5. Do not set `UPW_USE_FIXTURES` on Vercel.
 6. Deploy. The first screen is the password form. Analysis reads your public photos, builds the plan, and stores it in Neon. Apply calls `PUT /photos/:id` and the collection endpoints with your user token.
 
-Place search calls Nominatim from the server, one request per second, with the User-Agent above. A day with two places stays empty until you fill it. The desk cannot see camera GPS or shutter time, so it does not hide burst frames. Use the profile checkbox yourself, or run `upw` locally when the originals are on disk. Photos with more than 100 downloads are still kept on the profile.
+Place search calls Nominatim from the server, one request per second, with the User-Agent above. A day with two places stays empty until you fill it. The desk cannot see file GPS or shutter time, so it does not hide burst frames. Use the profile checkbox yourself, or run `upw` locally when the originals are on disk. Photos with more than 100 downloads are still kept on the profile.
 
-Branch protection on `master`, when this token can set it, should require the CI checks before merge. If the API refuses, the settings are:
-
-GitHub → Settings → Branches → Add rule for `master` → Require a pull request and require the status checks named `python`, `gitleaks`, and `web`. Do not require approving reviews if you want a green CI run to be able to merge.
+Branch protection on `master` should require a pull request and the status checks named `python`, `gitleaks`, and `web`. The API token used while building this repo could not set that rule (GitHub returned 403). Settings → Branches → Add rule for `master`. Leave approving reviews off if a green CI run should be enough to merge.
 
 ## Limitations
 
-- Unsplash does not return GPS, and it does not return the shutter time. Capture time comes from your local originals.
+- Many DSLR and mirrorless cameras do not record GPS. Unsplash does not return GPS, and it does not return the shutter time. Capture time comes from local originals.
 - The public API lists public photos only. There is no upload and no delete.
 - Demo apps share a 50 request hourly budget. `upw run` on a large library can spend that on sync alone. Apply compares against the last sync snapshot and updates the snapshot after a successful write.
-- Hiding "weaker" shots without an aesthetic model means burst extras, plus any ids you list in `force_hide_ids`. Downloads above 100 are never hidden. The web desk cannot see shutter times, so burst hiding stays on the CLI.
-- The Actions cache and the laptop `state/` directory are separate. A reviewed CSV from one does not apply on the other until you copy it.
-- The web desk and `upw` do not share a database. Apply from one does not mark the other's processed ids. A second apply is still safe: unchanged fields are skipped.
+- Hiding a weaker shot, without an aesthetic model, means a burst extra, plus any ids listed in `force_hide_ids`. Downloads above 100 are never hidden. The web desk cannot see shutter times, so burst hiding stays on the CLI.
+- The Actions cache and the laptop `state/` directory are separate. A reviewed CSV from one applies on the other after you copy it.
+- The web desk and `upw` do not share a database. Apply from one does not mark the other's processed ids. A second apply still skips fields that already match.
 - Nominatim is a public service. Keep the User-Agent honest and the cache on.
