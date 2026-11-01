@@ -1,7 +1,8 @@
 """Local capture time and GPS.
 
-Unsplash does not return GPS. Coordinates come from the original camera file,
-or from a phone export / GPX / Google Timeline track matched by timestamp.
+Unsplash does not return GPS. Many DSLR and mirrorless cameras do not record it
+either. Coordinates come from the original file, or from a phone export / GPX /
+Google Timeline track matched by timestamp.
 The camera clock can sit ahead or behind the phone; `camera_clock_offset_seconds`
 is added to the camera timestamp before matching.
 """

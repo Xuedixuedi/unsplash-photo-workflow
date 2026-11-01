@@ -11,10 +11,10 @@ from upw.models import Location, Trip
 def test_normalize_and_fill_tags() -> None:
     rules = Rules(target_tag_count=6)
     assert normalize_tag("#Lake", brands=rules.camera_brands, max_words=3) is None
-    assert normalize_tag("Canon EOS", brands=rules.camera_brands, max_words=3) is None
+    assert normalize_tag("Nikon body", brands=rules.camera_brands, max_words=3) is None
     assert normalize_tag("unesco world heritage site", brands=rules.camera_brands, max_words=5) == "unesco world heritage site"
     assert normalize_tag("a b c d", brands=rules.camera_brands, max_words=3) is None
-    shot = photo(tags=["Jiuzhaigou", "jiuzhaigou", "Canon", "Travel Photography"])
+    shot = photo(tags=["Jiuzhaigou", "jiuzhaigou", "Nikon", "Travel Photography"])
     suggestion = build_tags(
         shot,
         Location(name="Five Flower Lake", city="Jiuzhaigou County", region="Ngawa", country="China"),
@@ -26,7 +26,7 @@ def test_normalize_and_fill_tags() -> None:
     assert suggestion.source == "deterministic"
     assert suggestion.value[0] == "jiuzhaigou"
     assert suggestion.value.count("jiuzhaigou") == 1
-    assert "canon" not in suggestion.value
+    assert "nikon" not in suggestion.value
     assert "five flower lake" in suggestion.value
     assert "china" in suggestion.value
     assert len(suggestion.value) <= 6
@@ -35,7 +35,7 @@ def test_normalize_and_fill_tags() -> None:
 def test_llm_only_fills_remaining_slots() -> None:
     class Llm:
         def complete_json(self, *, photo_id: str, purpose: str, prompt: str, image: bytes | None) -> dict[str, object]:
-            return {"tags": ["misty forest", "Canon", "one two three four"]}
+            return {"tags": ["misty forest", "Nikon", "one two three four"]}
 
     rules = Rules(target_tag_count=4)
     shot = photo(tags=["lake", "forest", "path"])
